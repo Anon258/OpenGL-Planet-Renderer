@@ -10,8 +10,9 @@
 #include<GL/glew.h>
 
 class Shader{
-     GLuint program;
 public:
+    GLuint program;
+    
     std::string readFile(const GLchar* path);
     Shader(const GLchar* vertPath, const GLchar* fragPath);
     GLuint CreateShaderGL(GLenum eShaderType, const GLchar* shaderPath);
