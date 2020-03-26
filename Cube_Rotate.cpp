@@ -9,17 +9,28 @@
 #include<GLFW/glfw3.h>
 
 #include "Utility/Cube.hpp"
+#include "Utility/Camera.hpp"
 
+void processInput(GLFWwindow *window);
 void framebuffer_size_callback(GLFWwindow* window, int screenwidth, int screenheight);
-
 void Key_Rotation(GLFWwindow* window, int key, int scancode, int action, int mods);
+void mouse_callback(GLFWwindow* window, double xpos, double ypos);
 
 //Window dimensions
 const GLint WIDTH = 800, HEIGHT = 800;
-GLfloat xrot,yrot,zrot, xpos, ypos, zpos;
+GLfloat xrot,yrot,zrot, xpos, ypos, zpos, fov=45.0f;
 GLint scrwidth, scrheight;
 
+GLfloat deltaTime = 0.0f;    // Time between current frame and last frame
+GLfloat lastFrame = 0.0f; // Time of last frame
+
 int mode = 0; //0 = Translate
+
+bool firstMouse = true;
+float lastX =  WIDTH / 2.0;
+float lastY =  HEIGHT / 2.0;
+
+Camera camera;
 
 int main(){
     //Initialise glfw
@@ -53,6 +64,8 @@ int main(){
     }
     
     glfwSetKeyCallback(window, Key_Rotation);
+    glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
+    glfwSetCursorPosCallback(window, mouse_callback);
     
     Cube cube1("Shaders/cube_vert_shader.glsl", "Shaders/cube_frag_shader.glsl");
     
@@ -64,12 +77,18 @@ int main(){
     //Now we draw in the game loop
     while(!glfwWindowShouldClose(window)){
         
+        processInput(window);
         //Check if any events have been activated - key press or something
         glfwPollEvents();
+        
         
         //Render and Clear the color buffer
         glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+        
+        float currentFrame = glfwGetTime();
+        deltaTime = currentFrame - lastFrame;
+        lastFrame = currentFrame;
         
         //matrix transformations to rotate
         glm::mat4 trans = glm::mat4(1.0f), view = glm::mat4(1.0f);
@@ -79,8 +98,9 @@ int main(){
         trans = glm::rotate(trans, yrot, glm::vec3(0.0f, 1.0f, 0.0));
         trans = glm::rotate(trans, zrot, glm::vec3(0.0f, 0.0f, 1.0));
         //glm::mat4 projection = glm::ortho(-1.0, 1.0, -1.0, 1.0, -1.0, 1.0);
-        glm::mat4 projection = glm::perspective((float)M_PI/4.0f, (float)WIDTH/(float)HEIGHT, 0.1f, 10.0f);
-        view = glm::translate(view, glm::vec3(0.0f, 0.0f, -3.0f));
+        glm::mat4 projection = glm::perspective((float)(glm::radians(fov)), (float)WIDTH/(float)HEIGHT, 0.1f, 100.0f);
+        
+        view = camera.GetViewMatrix();
         trans = projection * view * trans;
         
         cube1.shader->use();
@@ -113,41 +133,86 @@ void Key_Rotation(GLFWwindow* window, int key, int scancode, int action, int mod
         mode = 1; //rotate
     else if (key == GLFW_KEY_T && action == GLFW_PRESS)
         mode = 0;
-    else if (key == GLFW_KEY_LEFT && action == GLFW_PRESS){
+}
+
+void processInput(GLFWwindow *window)
+{
+    if (glfwGetKey(window, GLFW_KEY_LEFT) == GLFW_PRESS){
         if(mode)
-            yrot -= 0.5;
+            yrot -= 2*deltaTime;
         else
-            xpos -= 0.5;
+            xpos -= 2*deltaTime;
     }
-    else if (key == GLFW_KEY_RIGHT && action == GLFW_PRESS){
+    if (glfwGetKey(window, GLFW_KEY_RIGHT) == GLFW_PRESS){
         if(mode)
-            yrot += 0.5;
+            yrot += 2*deltaTime;
         else
-            xpos += 0.5;
+            xpos += 2*deltaTime;
     }
-    else if (key == GLFW_KEY_DOWN && action == GLFW_PRESS){
+    if (glfwGetKey(window, GLFW_KEY_DOWN) == GLFW_PRESS){
         if(mode)
-            xrot += 0.5;
+            xrot += 2*deltaTime;
         else
-            ypos -= 0.5;
+            ypos -= 2*deltaTime;
     }
-    else if (key == GLFW_KEY_UP && action == GLFW_PRESS){
+    if (glfwGetKey(window, GLFW_KEY_UP) == GLFW_PRESS){
         if(mode)
-            xrot -= 0.5;
+            xrot -= 2*deltaTime;
         else
-            ypos += 0.5;
+            ypos += 2*deltaTime;
     }
-    else if (key == GLFW_KEY_COMMA && action == GLFW_PRESS){
+    if (glfwGetKey(window, GLFW_KEY_COMMA) == GLFW_PRESS){
         if(mode)
-            zrot += 0.5;
+            zrot += 2*deltaTime;
         else
-            zpos -= 0.5;
+            zpos -= 2*deltaTime;
     }
-    else if (key == GLFW_KEY_SLASH && action == GLFW_PRESS){
+    if (glfwGetKey(window, GLFW_KEY_SLASH) == GLFW_PRESS){
         if(mode)
-            zrot -= 0.5;
+            zrot -= 2*deltaTime;
         else
-            zpos += 0.5;
+            zpos += 2*deltaTime;
     }
+    if (glfwGetKey(window, GLFW_KEY_P) == GLFW_PRESS){
+        fov -= 20.0f * deltaTime;
+        if(fov<1.0f)
+            fov = 1.0f;
+    }
+    if (glfwGetKey(window, GLFW_KEY_O) == GLFW_PRESS){
+        fov +=20.0f *deltaTime;
+        if(fov>89.0f)
+            fov=89.0f;
+    }
+    
+    if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS)
+        camera.KeyboardInput(FORWARD, deltaTime);
+    if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS)
+        camera.KeyboardInput(BACKWARD, deltaTime);
+    if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS)
+        camera.KeyboardInput(LEFT, deltaTime);
+    if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS)
+        camera.KeyboardInput(RIGHT, deltaTime);
+    if (glfwGetKey(window, GLFW_KEY_Z) == GLFW_PRESS)
+        camera.KeyboardInput(DOWN, deltaTime);
+    if (glfwGetKey(window, GLFW_KEY_X) == GLFW_PRESS)
+        camera.KeyboardInput(UP, deltaTime);
+}
+
+void mouse_callback(GLFWwindow* window, double xpos, double ypos)
+{
+    if(firstMouse)
+    {
+        lastX = xpos;
+        lastY = ypos;
+        firstMouse = false;
+    }
+    
+    float xoffset = xpos - lastX;
+    float yoffset = lastY - ypos;
+    lastX = xpos;
+    lastY = ypos;
+    
+    camera.MouseMovement(xoffset, yoffset);
+    
 }
 
