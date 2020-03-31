@@ -12,7 +12,7 @@ void Camera::UpdateCameraVectors(){
 }
 
 Camera::Camera(){
-    camPos = glm::vec3(0.0,0.0,3.0);
+    camPos = glm::vec3(0.0,0.0,10.0);
     camFront =  glm::vec3(0.0,0.0,-1.0);
     camUp = glm::vec3(0.0,1.0,0.0);
     worldUp = glm::vec3(0.0,1.0,0.0);
@@ -28,6 +28,10 @@ Camera::Camera(){
 
 glm::mat4 Camera::GetViewMatrix(){
     return glm::lookAt(camPos, camPos + camFront, camUp);
+}
+
+glm::vec3 Camera::GetCamPos(){
+    return camPos;
 }
 
 void Camera::MouseMovement(float xoffset, float yoffset){

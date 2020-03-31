@@ -99,3 +99,13 @@ void Shader::setUniformInt(const GLchar* name, int value){
     GLint vertexLocation = glGetUniformLocation(program, name);
     glUniform1i(vertexLocation, value);
 }
+
+void Shader::setUniformMat4(const GLchar* name, glm::mat4 matrix){
+    GLuint modelLoc = glGetUniformLocation(program, name);
+    glUniformMatrix4fv(modelLoc, 1, GL_FALSE, &matrix[0][0]);
+}
+
+void Shader::setUniformVec3(const GLchar* name, glm::vec3 vector){
+    GLuint modelLoc = glGetUniformLocation(program, name);
+    glUniform3f(modelLoc, vector.x, vector.y, vector.z);
+}

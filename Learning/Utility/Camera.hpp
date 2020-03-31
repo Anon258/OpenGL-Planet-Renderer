@@ -30,6 +30,7 @@ public:
     void UpdateCameraVectors();
     Camera();
     glm::mat4 GetViewMatrix();
+    glm::vec3 GetCamPos();
     void MouseMovement(float xoffset, float yoffset);
     void KeyboardInput(Cam_mov direction, float deltaTime);
 };

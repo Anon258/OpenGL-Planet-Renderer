@@ -8,6 +8,7 @@
 #include<vector>
 
 #include<GL/glew.h>
+#include "glm/glm.hpp"
 
 class Shader{
 public:
@@ -21,6 +22,8 @@ public:
     void use();
     void setUniformFloat(const GLchar* name, float value);
     void setUniformInt(const GLchar* name, int value);
+    void setUniformMat4(const GLchar* name, glm::mat4 matrix);
+    void setUniformVec3(const GLchar* name, glm::vec3 vector);
 };
 
 #endif /* Shader_hpp */

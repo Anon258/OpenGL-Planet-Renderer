@@ -18,10 +18,7 @@
 
 class Cube{
     glm::vec4 positions[8];
-    glm::vec4 colors[8];
-
     glm::vec4 glPoints[36];
-    glm::vec4 glColors[36];
 
     int pos_index;
 
