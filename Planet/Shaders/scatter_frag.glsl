@@ -17,8 +17,8 @@ float K_M = 0.0025;
 vec3 wave_factor = vec3(0.3, 0.7, 1.0);
 float PI = radians(180.0f);
 
-float nOutScat = 10;
-float nInScat = 10;
+float nOutScat = 5;
+float nInScat = 5;
 
 float rayleigh(float fcos){
     return 0.75 * (1 + fcos * fcos);
@@ -95,17 +95,20 @@ void main(){
     vec3 direction = normalize(vec3(Coords, -1.0/tan(radians(fov/2))));
     if(intersect_detect(vec3(0.0), direction, earth_center, atm_radius)){
         if(intersect_detect(vec3(0.0), direction, earth_center, earth_radius)){ //If lightray hits atmosphere and earth
-            
             //we need to make sure now the values are positive
             vec2 dist_atm = intersect_find(vec3(0.0), direction, earth_center, atm_radius);
             vec2 dist_earth = intersect_find(vec3(0.0), direction, earth_center, earth_radius);
             float near = dist_atm.x;
             float far = dist_earth.x;
-            if(near<0)
+            bool flag = true;
+            if(near<0){
                 near = 0;
+                flag = false;
+            }
             vec3 col = inscatter(direction * near, direction * far, direction);
             
             FragColor = vec4(col,exp(-outscatter(direction * near, direction * far) * (K_R + K_M)));
+            //FragColor = vec4(col,0.0);
         }
         else{ //if hits at 2 points in atmosphere
             

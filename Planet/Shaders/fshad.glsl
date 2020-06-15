@@ -28,6 +28,8 @@ vec3 calcDirLight(DirLight light, vec3 normal, vec3 viewDir){
     float diff = max(dot(lightDir, normal), 0.0);
     vec3 diffuse = diff * vec3(texture(material.diffuseMap, TexCoords));
     
+    ambient = ambient * (1 - diffuse);
+    
     //specular
     vec3 halfwayDir = normalize(lightDir + viewDir);
     float spec = pow(max(dot(normal, halfwayDir), 0.0), 32.0);

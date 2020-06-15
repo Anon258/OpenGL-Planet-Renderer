@@ -32,7 +32,7 @@ Texture::Texture(const GLchar* name){
         glGenerateMipmap(GL_TEXTURE_2D);
     }
     else{
-        std::cout << "Failed to load texture" << std::endl;
+        std::cout << name << "Failed to load texture" << std::endl;
     }
     stbi_image_free(data);
 }

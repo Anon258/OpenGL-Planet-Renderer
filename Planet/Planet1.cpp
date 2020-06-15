@@ -28,7 +28,7 @@ GLfloat lastFrame = 0.0f; // Time of last frame
 
 GLfloat lastX,lastY;
 bool firstMouse = true;
-float fov = 70.0f;
+float fov = 50.0f;
 
 Camera camera;
 
@@ -69,9 +69,16 @@ int main(){
     
     Sphere sphere;
     Shader object("Shaders/vshad.glsl","Shaders/fshad.glsl");
+    Shader others("Shaders/otherv.glsl","Shaders/otherf.glsl");
+    Shader sun("Shaders/sunv.glsl","Shaders/sunf.glsl");
     Texture diffuseMap("Images/earth/diffuse.jpg");
     Texture lightsMap("Images/earth/lights.jpg");
     Texture specularMap("Images/earth/specular.jpg");
+    Texture dispMap("Images/earth/displacement.jpg");
+    Texture moonMap("Images/others/moon.jpg");
+    Texture venusMap("Images/others/venus.jpg");
+    Texture marsMap("Images/others/mars.jpg");
+    Texture sunMap("Images/sun/jpg");
     
     GLuint VBO, sphereVAO, EBO;
     glGenVertexArrays(1, &sphereVAO);
@@ -108,18 +115,18 @@ int main(){
     //Generate CubeMap
     Shader skyboxShader("Shaders/sky_vshad.glsl","Shaders/sky_fshad.glsl");
     std::vector<std::string> faces{
-        "Images/space/right.jpg",
-        "Images/space/left.jpg",
-        "Images/space/top.jpg",
-        "Images/space/bottom.jpg",
-        "Images/space/front.jpg",
-        "Images/space/back.jpg"
+        "Images/space/milkyway2.jpg",   //right
+        "Images/space/stars1.jpg",      //left
+        "Images/space/stars1.jpg",      //top
+        "Images/space/stars2.jpg",      //bottom
+        "Images/space/milkyway1.jpg",   //front
+        "Images/space/stars2.jpg"       //back
     };
     SkyBox skybox(faces);
     skyboxShader.use();
     skyboxShader.setUniformInt("skybox", 0);
     
-    glm::vec3 lightDirection = glm::vec3(1.0,0.0,0.0);
+    glm::vec3 lightDirection = glm::vec3(1.0,1.4,-2.3);
     
     object.use();
     glm::mat4 model = glm::mat4(1.0f);
@@ -128,7 +135,19 @@ int main(){
     object.setUniformInt("material.diffuseMap", 0);
     object.setUniformInt("material.lightsMap", 1);
     object.setUniformInt("material.specularMap", 2);
+    object.setUniformInt("dispMap", 3);
     object.setUniformVec3("dirLight.direction", lightDirection);
+    
+    glm::vec3 otherPos[3] = {
+        glm::vec3(12.0f,5.0,6.0),
+        glm::vec3(1.6f, 1.8f, -2.4f) * 40.0f,
+        glm::vec3(-1.5f, -1.3f, -1.7f) * 80.0f
+    };
+    
+    float sizes[3] = {1.4f, 9.8f, 6.0f};
+    
+    others.use();
+    others.setUniformVec3("dirLight.direction", lightDirection);
     
     Shader scatter("Shaders/scatter_vert.glsl", "Shaders/scatter_frag.glsl");
     glm::vec3 scatter_quad[] = {
@@ -155,12 +174,17 @@ int main(){
     scatter.setUniformFloat("earth_radius", 10.0f);
     scatter.setUniformFloat("atm_radius", 10.0 * 67.0f/64.0f);
 
+    
     //Now we draw in the game loop
     while(!glfwWindowShouldClose(window)){
-        if(glm::length(camera.GetCamPos()) <10.3)
-            camera.speed = 0.8f;
-        else
+        if(glm::length(camera.GetCamPos()) >16.0f)
+            camera.speed = 10.0f;
+        else if(glm::length(camera.GetCamPos()) >11.0f)
             camera.speed = 2.0f;
+        else if(glm::length(camera.GetCamPos())>10.0f)
+            camera.speed = 0.1f * pow(20.0, glm::length(camera.GetCamPos()) - 10.0f);
+        else
+            camera.speed = 0.1f;
             
             
         processInput(window);
@@ -176,13 +200,14 @@ int main(){
         lastFrame = currentFrame;
         
         glm::mat4 view = camera.GetViewMatrix();
-        glm::mat4 projection = glm::perspective((float)(glm::radians(fov)), (float)WIDTH/(float)HEIGHT, 0.1f, 100.0f);
+        glm::mat4 projection = glm::perspective((float)(glm::radians(fov)), (float)WIDTH/(float)HEIGHT, 0.1f, 500.0f);
         
         //object
         object.use();
         diffuseMap.use();
         lightsMap.use(1);
         specularMap.use(2);
+        dispMap.use(3);
         object.setUniformMat4("view", view);
         object.setUniformMat4("projection", projection);
         object.setUniformVec3("cameraPos", camera.GetCamPos());
@@ -191,7 +216,31 @@ int main(){
         glDrawElements(GL_TRIANGLES, sphere.indicesSize , GL_UNSIGNED_INT, 0);
         glBindVertexArray(0);
         
-        glBlendFunc(GL_ONE, GL_SRC_ALPHA);
+        //moon
+        others.use();
+        for(int i=0;i<3; i++){
+            if(i==0)
+                moonMap.use();
+            else if(i==1)
+                venusMap.use();
+            else
+                marsMap.use();
+            
+            model = glm::mat4(1.0f);
+            model = glm::translate(model, otherPos[i]);
+            model = glm::scale(model, glm::vec3(sizes[i]));
+            others.setUniformMat4("model", model);
+            others.setUniformMat4("view", view);
+            others.setUniformMat4("projection", projection);
+            others.setUniformVec3("cameraPos", camera.GetCamPos());
+            
+            glBindVertexArray(sphereVAO);
+            glDrawElements(GL_TRIANGLES, sphere.indicesSize , GL_UNSIGNED_INT, 0);
+            glBindVertexArray(0);
+        }
+        
+        //atmosphere
+        glBlendFunc(GL_ONE, GL_ONE_MINUS_SRC_ALPHA);
         scatter.use();
         view = camera.GetViewMatrix();
         glm::vec3 center = glm::vec3(view * glm::vec4(0,0,0,1.0));
@@ -201,7 +250,7 @@ int main(){
         lightdir = glm::normalize(lightdir);
         scatter.setUniformVec3("light_direction", lightdir);
         scatter.setUniformFloat("fov", fov);
-
+        
         glBindVertexArray(quadVAO);
         glDrawArrays(GL_TRIANGLES, 0, 6);
         glBindVertexArray(0);
