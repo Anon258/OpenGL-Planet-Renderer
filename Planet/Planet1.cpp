@@ -14,6 +14,8 @@
 #include "Utility/SphereGeneration.hpp"
 #include "Utility/Textures.hpp"
 #include "Utility/SkyBox.hpp"
+#include "Utility/Atmosphere.hpp"
+#include "Utility/Asteroid.hpp"
 
 void processInput(GLFWwindow* window);
 void framebuffer_size_callback(GLFWwindow* window, int screenwidth, int screenheight);
@@ -78,31 +80,7 @@ int main(){
     Texture moonMap("Images/others/moon.jpg");
     Texture venusMap("Images/others/venus.jpg");
     Texture marsMap("Images/others/mars.jpg");
-    Texture sunMap("Images/sun/jpg");
-    
-    GLuint VBO, sphereVAO, EBO;
-    glGenVertexArrays(1, &sphereVAO);
-    glGenBuffers(1, &VBO);
-    glGenBuffers(1, &EBO);
-    
-    glBindVertexArray(sphereVAO);
-    
-    glBindBuffer(GL_ARRAY_BUFFER, VBO);
-    glBufferData(GL_ARRAY_BUFFER, sphere.positionsSize*sizeof(float), &sphere.positions[0], GL_STATIC_DRAW);
-    
-    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
-    glBufferData(GL_ELEMENT_ARRAY_BUFFER, sphere.indicesSize*sizeof(unsigned int), &sphere.indices[0], GL_STATIC_DRAW);
-    
-    // position attribute
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)0);
-    glEnableVertexAttribArray(0);
-    //normal attribute
-    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)(3 * sizeof(float)));
-    glEnableVertexAttribArray(1);
-    //texture attribute
-    glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)(6 * sizeof(float)));
-    glEnableVertexAttribArray(2);
-    glBindVertexArray(0);
+    Texture sunMap("Images/sun.jpg");
     
     //Set depth test to less-than
     glDepthFunc(GL_LESS);
@@ -112,19 +90,7 @@ int main(){
     glEnable(GL_BLEND);
     glBlendFunc(GL_SRC_ALPHA , GL_ONE_MINUS_SRC_ALPHA);
     
-    //Generate CubeMap
-    Shader skyboxShader("Shaders/sky_vshad.glsl","Shaders/sky_fshad.glsl");
-    std::vector<std::string> faces{
-        "Images/space/milkyway2.jpg",   //right
-        "Images/space/stars1.jpg",      //left
-        "Images/space/stars1.jpg",      //top
-        "Images/space/stars2.jpg",      //bottom
-        "Images/space/milkyway1.jpg",   //front
-        "Images/space/stars2.jpg"       //back
-    };
-    SkyBox skybox(faces);
-    skyboxShader.use();
-    skyboxShader.setUniformInt("skybox", 0);
+    SkyBox skybox;
     
     glm::vec3 lightDirection = glm::vec3(1.0,1.4,-2.3);
     
@@ -149,31 +115,8 @@ int main(){
     others.use();
     others.setUniformVec3("dirLight.direction", lightDirection);
     
-    Shader scatter("Shaders/scatter_vert.glsl", "Shaders/scatter_frag.glsl");
-    glm::vec3 scatter_quad[] = {
-        glm::vec3(-1.0,-1.0,-1.0),
-        glm::vec3(-1.0, 1.0,-1.0),
-        glm::vec3( 1.0,-1.0,-1.0),
-        glm::vec3( 1.0, 1.0,-1.0),
-        glm::vec3(-1.0, 1.0,-1.0),
-        glm::vec3( 1.0,-1.0,-1.0)
-    };
-
-    GLuint quadVBO,quadVAO;
-    glGenVertexArrays(1, &quadVAO);
-    glGenBuffers(1, &quadVBO);
-    glBindVertexArray(quadVAO);
-
-    glBindBuffer(GL_ARRAY_BUFFER, quadVBO);
-    glBufferData(GL_ARRAY_BUFFER, sizeof(scatter_quad), scatter_quad, GL_STATIC_DRAW);
-    // position attribute
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);
-    glEnableVertexAttribArray(0);
-
-    scatter.use();
-    scatter.setUniformFloat("earth_radius", 10.0f);
-    scatter.setUniformFloat("atm_radius", 10.0 * 67.0f/64.0f);
-
+    Atmosphere atmosphere;
+    Asteroid asteroid;
     
     //Now we draw in the game loop
     while(!glfwWindowShouldClose(window)){
@@ -185,8 +128,8 @@ int main(){
             camera.speed = 0.1f * pow(20.0, glm::length(camera.GetCamPos()) - 10.0f);
         else
             camera.speed = 0.1f;
-            
-            
+        
+        
         processInput(window);
         //Check if any events have been activated - key press or something
         glfwPollEvents();
@@ -200,7 +143,9 @@ int main(){
         lastFrame = currentFrame;
         
         glm::mat4 view = camera.GetViewMatrix();
-        glm::mat4 projection = glm::perspective((float)(glm::radians(fov)), (float)WIDTH/(float)HEIGHT, 0.1f, 500.0f);
+        glm::mat4 projection = glm::perspective((float)(glm::radians(fov)), (float)WIDTH/(float)HEIGHT, 0.1f, 1000.0f);
+        
+        
         
         //object
         object.use();
@@ -211,11 +156,11 @@ int main(){
         object.setUniformMat4("view", view);
         object.setUniformMat4("projection", projection);
         object.setUniformVec3("cameraPos", camera.GetCamPos());
-        
-        glBindVertexArray(sphereVAO);
+
+        glBindVertexArray(sphere.VAO);
         glDrawElements(GL_TRIANGLES, sphere.indicesSize , GL_UNSIGNED_INT, 0);
         glBindVertexArray(0);
-        
+
         //moon
         others.use();
         for(int i=0;i<3; i++){
@@ -225,7 +170,7 @@ int main(){
                 venusMap.use();
             else
                 marsMap.use();
-            
+
             model = glm::mat4(1.0f);
             model = glm::translate(model, otherPos[i]);
             model = glm::scale(model, glm::vec3(sizes[i]));
@@ -233,42 +178,16 @@ int main(){
             others.setUniformMat4("view", view);
             others.setUniformMat4("projection", projection);
             others.setUniformVec3("cameraPos", camera.GetCamPos());
-            
-            glBindVertexArray(sphereVAO);
+
+            glBindVertexArray(sphere.VAO);
             glDrawElements(GL_TRIANGLES, sphere.indicesSize , GL_UNSIGNED_INT, 0);
             glBindVertexArray(0);
         }
         
-        //atmosphere
-        glBlendFunc(GL_ONE, GL_ONE_MINUS_SRC_ALPHA);
-        scatter.use();
-        view = camera.GetViewMatrix();
-        glm::vec3 center = glm::vec3(view * glm::vec4(0,0,0,1.0));
-        scatter.setUniformVec3("earth_center", center);
-        view = camera.GetViewMatrix();
-        glm::vec3 lightdir = glm::vec3(view * glm::vec4(lightDirection, 0.0));
-        lightdir = glm::normalize(lightdir);
-        scatter.setUniformVec3("light_direction", lightdir);
-        scatter.setUniformFloat("fov", fov);
-        
-        glBindVertexArray(quadVAO);
-        glDrawArrays(GL_TRIANGLES, 0, 6);
-        glBindVertexArray(0);
-        glBlendFunc(GL_ONE, GL_ZERO);
-        
-        //In the end we generate the skybox (actually should be rendered first but we optimize it by setting it at maximum depth, so we can discard fragments which dont pass depth test)
-        glDepthFunc(GL_LEQUAL);  // change depth function so depth test passes when values are equal to depth buffer's content
-        skyboxShader.use();
-        view = glm::mat4(glm::mat3(camera.GetViewMatrix())); // remove translation from the view matrix to give feeling of infiniteness to skybox
-        skyboxShader.setUniformMat4("view", view);
-        skyboxShader.setUniformMat4("projection", projection);
-        // skybox cube
-        glBindVertexArray(skybox.skyVAO);
-        glActiveTexture(GL_TEXTURE0);
-        glBindTexture(GL_TEXTURE_CUBE_MAP, skybox.cubemapTexture);
-        glDrawArrays(GL_TRIANGLES, 0, 36);
-        glBindVertexArray(0);
-        glDepthFunc(GL_LESS); // set depth function back to default
+        //rock.Draw(asteroidShader);
+        asteroid.render(view, projection);
+        atmosphere.renderAtm(view, projection, lightDirection, glm::vec3(0.0f), fov);
+        skybox.render(view, projection);
         
         //swap screen buffers
         glfwSwapBuffers(window);

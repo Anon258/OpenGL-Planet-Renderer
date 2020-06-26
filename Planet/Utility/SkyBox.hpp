@@ -7,6 +7,11 @@
 #include "stb_image.h"
 #include<GL/glew.h>
 
+#include "Shader.hpp"
+#include "glm/glm.hpp"
+#include "glm/gtc/matrix_transform.hpp"
+#include "glm/gtc/type_ptr.hpp"
+
 class SkyBox{
     GLfloat skyboxVertices[108] = {
         // positions
@@ -55,9 +60,10 @@ class SkyBox{
 public:
     GLuint cubemapTexture;
     GLuint skyVAO,skyVBO;
-    
-    SkyBox(std::vector<std::string> faces);
+    Shader* skyboxShader;
+    SkyBox();
     GLuint loadCubemap(std::vector<std::string> faces);
+    void render(glm::mat4 view, glm::mat4 projection);
     int vertCount();
 };
 #endif /* SkyBox_hpp */

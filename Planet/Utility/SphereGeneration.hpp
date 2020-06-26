@@ -17,6 +17,7 @@ public:
     std::vector<float> positions;
     //std::vector<float> normal;
     std::vector<int> indices;
+    GLuint VBO, VAO, EBO;
     
     float sectorStep, stackStep;
     float sectorAngle, stackAngle;

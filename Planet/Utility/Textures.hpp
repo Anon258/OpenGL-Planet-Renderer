@@ -7,8 +7,8 @@
 #include<GL/glew.h>
 
 class Texture{
-    GLuint texture;
 public:
+    GLuint texture;
     Texture(const GLchar* name);
     
     void use(int i=0);

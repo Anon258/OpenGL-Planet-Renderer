@@ -12,7 +12,7 @@ void Camera::UpdateCameraVectors(){
 }
 
 Camera::Camera(){
-    camPos = glm::vec3(0.0,0.0,13.0);
+    camPos = glm::vec3(0.0,0.0,60.0);
     camFront =  glm::vec3(0.0,0.0,-1.0);
     camUp = glm::vec3(0.0,1.0,0.0);
     worldUp = glm::vec3(0.0,1.0,0.0);
@@ -21,7 +21,7 @@ Camera::Camera(){
     Pitch = 0.0f;
     
     sensitivity = 0.1f;
-    speed = 2.0f;
+    speed = 10.0f;
     
     UpdateCameraVectors();
 }
