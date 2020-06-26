@@ -2,7 +2,7 @@
 
 Created a space rendering depicting the sun and the planets upto mars and the asteroid belt.
 
-| ![Space](Space.png) | ![Earth](Earth_Atm.png)|
+![Space](Space.png) ![Earth](Earth_Atm.png)
 
 
 #### TODO:
